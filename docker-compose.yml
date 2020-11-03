@@ -9,14 +9,22 @@ services:
       context: .
       dockerfile: ./dev.Dockerfile
     ports:
-      - '3000:3000'
+      - '3001:3000'
     env_file:
       - ./.env
     volumes:
       - ./:/app
       - demo_node_modules:/app/node_modules
     networks:
-      - sk-issuer-service
+      - kyc-chain-monorepo_kycc
+  mongoui:
+    image: mongo-express:latest
+    environment:
+      - ME_CONFIG_MONGODB_SERVER=docker.for.mac.localhost
+    networks:
+      - kyc-chain-monorepo_kycc
+    ports:
+      - '8082:8081'
 networks:
-  sk-issuer-service:
-    driver: bridge
+  kyc-chain-monorepo_kycc:
+    external: true
