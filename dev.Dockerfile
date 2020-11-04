@@ -13,6 +13,6 @@ RUN yarn
 COPY ./src ./
 COPY ./bin ./
 
-# VOLUME /app/node_modules
+VOLUME /app/node_modules
 
 CMD ["yarn", "start-dev"]

@@ -83,3 +83,12 @@ function onListening() {
 	var bind = typeof addr === 'string' ? 'pipe ' + addr : 'port ' + addr.port;
 	debug('Listening on ' + bind);
 }
+
+process.on('SIGTERM', () => {
+	console.log('SIGTERM received! Shutting down.');
+	process.exit(0);
+});
+process.on('SIGINT', () => {
+	console.log('SIGINT received! Shutting down.');
+	process.exit(0);
+});
