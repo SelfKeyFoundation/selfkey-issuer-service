@@ -1,0 +1,29 @@
+version: 2.1
+
+orbs:
+  docker: circleci/docker@1.3.0
+jobs:
+  build-and-push:
+    executor: docker/docker
+    steps:
+      - setup_remote_docker
+      - checkout
+      - run:
+          name: login to docker repository
+          command: |
+            docker login -u ${GCR_DOCKER_USERNAME} -p "$(echo ${GCR_DOCKER_PASSWORD} | base64 -d)" ${GCR_DOCKER_REPOSITORY}
+      - run:
+          name: build and push docker image
+          command: |
+            docker build -t asia.gcr.io/selfkey2/selfkey-issuer-service:${CIRCLE_TAG} .
+            docker push asia.gcr.io/selfkey2/selfkey-issuer-service:${CIRCLE_TAG}
+workflows:
+  main:
+    jobs:
+      - build-and-push:
+          context: google-container-registry
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /v.*/
