@@ -1,41 +1,49 @@
 const Web3 = require('web3');
+const axios = require('axios').default;
 // const sk = require('@selfkey/node-lib');
 const INFURA_WSS_MAINNET = 'wss://mainnet.infura.io/ws/v3/';
 const INFURA_WSS_ROPSTEN = 'wss://ropsten.infura.io/ws/v3/';
 
+const fetchGasPrice = async () => {
+	const gasStation = await axios.get('https://ethgasstation.info/json/ethgasAPI.json', {
+		responseType: 'json'
+	});
+	return gasStation;
+};
+
 const createWeb3Client = opt => {
-	const {networkId = 1, infuraProjectId} = opt || {};
+	const {ethNetworkId, infuraProjectId} = opt || {};
 	if (!infuraProjectId) {
 		throw new Error('Invalid Config: infura project id is missing');
 	}
-
-	const wss = `${networkId === 1 ? INFURA_WSS_MAINNET : INFURA_WSS_ROPSTEN}${infuraProjectId}`;
-
+	const wss = `${ethNetworkId === 1 ? INFURA_WSS_MAINNET : INFURA_WSS_ROPSTEN}${infuraProjectId}`;
 	const web3 = new Web3(wss);
-	web3.eth.defaultChain = networkId;
 	return web3;
 };
 
 const createWeb3Wallet = (web3, opt) => {
-	if (!opt.privateKey) {
+	if (!opt.ethPrivateKey) {
 		throw new Error('Invalid Config: Ethereum private key required');
 	}
-	const wallet = web3.eth.accounts.wallets.add(opt.privateKey);
+	const wallet = web3.eth.accounts.wallet.add(opt.ethPrivateKey);
 	web3.eth.defaultAccount = wallet.address;
 	return wallet;
 };
 
 const createEthContract = (web3, wallet, opt) => {
-	if (!opt.contractAddress) {
+	if (!opt.issuerContractAddress) {
 		throw new Error('Invalid Config: Contract address required');
 	}
 
-	if (!opt.contractABI) {
+	if (!opt.issuerContractABI) {
 		throw new Error('Invalid Config: Contract ABI is required');
 	}
 
-	const contract = new web3.Contract(opt.contractABI, wallet.contractAddress);
+	const contract = new web3.eth.Contract(opt.issuerContractABI, opt.issuerContractAddress, {
+		from: wallet.address
+	});
 	contract.defaultAccount = wallet.address;
+	return contract;
 };
 
 const createWhitelistClient = opt => {
@@ -44,15 +52,29 @@ const createWhitelistClient = opt => {
 	const contract = createEthContract(web3, wallet, opt);
 
 	return {
-		isWhitelisted: async address => {
+		_lastPriceUpdate: 0,
+		_gasStationPrice: null,
+		async getGasPrice() {
+			if (Date.now() - this._lastPriceUpdate > 1000 * 60 * 60) {
+				this._gasStationPrice = await fetchGasPrice();
+				this._lastPriceUpdate = Date.now();
+			}
+
+			return this._gasStationPrice.average * 1000000000;
+		},
+		async isWhitelisted(address) {
 			const inWhitelist = await contract.methods.isWhitelisted(address).call();
 			return inWhitelist;
 		},
-		addWhitelisted: async address => {
-			await contract.methods.addWhitelisted(address).send();
+		async addWhitelisted(address) {
+			const gas = await contract.methods.addWhitelisted(address).estimateGas();
+			const gasPrice = await this.getGasPrice();
+			await contract.methods.addWhitelisted(address).send({gas, gasPrice});
 		},
-		removeWhitelisted: async address => {
-			await contract.methods.removeWhitelisted(address).send();
+		async removeWhitelisted(address) {
+			const gas = await contract.methods.removeWhitelisted(address).estimateGas();
+			const gasPrice = await this.getGasPrice();
+			await contract.methods.removeWhitelisted(address).send({gas, gasPrice});
 		}
 	};
 };

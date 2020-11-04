@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
+const config = require('config');
+const {didToAddress} = require('../utils');
+const {createWhitelistClient} = require('../whitelist');
 const kyccClient = require('../kycc-client');
-const KYCC_APPROVED_TEMPLATE = process.env.KYCC_APPROVED_TEMPLATE;
 
 router.post('/', async (req, res) => {
 	console.log('webhook received', JSON.stringify(req.body, null, 2));
@@ -27,13 +29,13 @@ router.post('/', async (req, res) => {
 			'idVerificationCheck'
 		]);
 
-		if (KYCC_APPROVED_TEMPLATE && application.template._id !== KYCC_APPROVED_TEMPLATE) {
+		if (config.kyccTemplate && application.template._id !== config.kyccTemplate) {
 			console.error(
-				`Hook for application id ${applicationId} rejected, only template ${KYCC_APPROVED_TEMPLATE} is allowed`
+				`Hook for application id ${applicationId} rejected, only template ${config.kyccTemplate} is allowed`
 			);
 			return res.json({
 				status: 400,
-				message: `Template of application ${applicationId} is not ${KYCC_APPROVED_TEMPLATE}`
+				message: `Template of application ${applicationId} is not ${config.kyccTemplate}`
 			});
 		}
 
@@ -58,7 +60,13 @@ router.post('/', async (req, res) => {
 		}
 
 		console.log(`XXX setting flag: user with DID ${user.did} is eligible for KeyFi`);
-		// TODO: call contract to setup the flag
+
+		const address = await didToAddress(user.did);
+		const whitelistClient = createWhitelistClient(config);
+
+		if (!(await whitelistClient.isWhitelisted(address))) {
+			await whitelistClient.addWhitelisted(address);
+		}
 
 		res.json({status: 'ok'});
 	} catch (error) {
