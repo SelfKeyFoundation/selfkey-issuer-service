@@ -24,6 +24,8 @@ workflows:
           context: google-container-registry
           filters:
             branches:
-              ignore: /.*/
+              # ignore: /.*/
+              only:
+                - circleci
             tags:
               only: /v.*/
