@@ -16,7 +16,9 @@ const createWeb3Client = opt => {
 	if (!infuraProjectId) {
 		throw new Error('Invalid Config: infura project id is missing');
 	}
-	const wss = `${ethNetworkId === 1 ? INFURA_WSS_MAINNET : INFURA_WSS_ROPSTEN}${infuraProjectId}`;
+	const wss = `${
+		+ethNetworkId === 1 ? INFURA_WSS_MAINNET : INFURA_WSS_ROPSTEN
+	}${infuraProjectId}`;
 	const web3 = new Web3(wss);
 	return web3;
 };
@@ -67,13 +69,13 @@ const createWhitelistClient = opt => {
 			return inWhitelist;
 		},
 		async addWhitelisted(address) {
-			const gas = await contract.methods.addWhitelisted(address).estimateGas();
 			const gasPrice = await this.getGasPrice();
+			const gas = await contract.methods.addWhitelisted(address).estimateGas({gasPrice});
 			await contract.methods.addWhitelisted(address).send({gas, gasPrice});
 		},
 		async removeWhitelisted(address) {
-			const gas = await contract.methods.removeWhitelisted(address).estimateGas();
 			const gasPrice = await this.getGasPrice();
+			const gas = await contract.methods.removeWhitelisted(address).estimateGas({gasPrice});
 			await contract.methods.removeWhitelisted(address).send({gas, gasPrice});
 		}
 	};

@@ -19,3 +19,5 @@ release
 .history
 
 .env
+
+src/test.js
