@@ -7,7 +7,7 @@ const didToAddress = async did => {
 	try {
 		const parsed = sk.did.parse(did);
 
-		if (config.ethNetworkId && parsed.method === 'selfkey') {
+		if (+config.ethNetworkId === 3 && parsed.method === 'selfkey') {
 			did = `${did};selfkey:chain=ropsten`;
 		}
 
