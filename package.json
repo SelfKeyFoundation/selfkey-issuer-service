@@ -19,6 +19,8 @@
   },
   "dependencies": {
     "@selfkey/node-lib": "1.2.1",
+    "@sentry/node": "^5.27.6",
+    "@sentry/tracing": "^5.27.6",
     "async": "^3.2.0",
     "axios": "^0.21.0",
     "debug": "2.6.9",

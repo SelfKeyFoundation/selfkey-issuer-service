@@ -4,16 +4,30 @@ const config = require('../config');
 const {didToAddress} = require('../utils');
 const whitelistClient = require('../whitelist').defaultClient;
 const kyccClient = require('../kycc-client');
+const Sentry = require('@sentry/node');
 
 router.post('/', async (req, res) => {
 	console.log('webhook received', JSON.stringify(req.body, null, 2));
+
 	try {
 		const {applicationId, status} = req.body;
+
+		Sentry.addBreadcrumb({
+			category: 'kycc-webhook',
+			message: `webhook received`,
+			data: {applicationId, status},
+			level: Sentry.Severity.Info
+		});
 
 		if (status !== kyccClient.statuses.APPROVED) {
 			console.error(
 				`Hook for application id ${applicationId} rejected, only approved applications are handled`
 			);
+			Sentry.addBreadcrumb({
+				category: 'kycc-webhook',
+				message: `webhook rejected, ${applicationId}, ${status}, need to be approved`,
+				level: Sentry.Severity.Info
+			});
 			return res.json({
 				status: 400,
 				message: `Application ${applicationId} was not approved`
@@ -60,16 +74,27 @@ router.post('/', async (req, res) => {
 		}
 
 		console.log(`XXX setting flag: user with DID ${user.did} is eligible for KeyFi`);
-
+		Sentry.addBreadcrumb({
+			category: 'kycc-webhook',
+			message: `converting did to address`,
+			data: {did: user.did},
+			level: Sentry.Severity.Info
+		});
 		const address = await didToAddress(user.did);
 
+		Sentry.addBreadcrumb({
+			category: 'kycc-webhook',
+			message: `Setting address to whitelist`,
+			data: {address},
+			level: Sentry.Severity.Info
+		});
 		if (!(await whitelistClient.isWhitelisted(address))) {
 			await whitelistClient.addWhitelisted(address);
 		}
-
 		res.json({status: 'ok'});
 	} catch (error) {
 		console.log('XXX', error);
+		Sentry.captureException(error);
 		res.status(500).json({status: 'error'});
 	}
 });
