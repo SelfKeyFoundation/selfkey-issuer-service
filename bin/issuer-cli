@@ -1,0 +1,147 @@
+#!/usr/bin/env node
+
+const config = require('../src/config');
+const yargs = require('yargs/yargs');
+const {defaultClient} = require('../src/whitelist');
+const kyccClient = require('../src/kycc-client');
+const {didToAddress} = require('../src/utils');
+const {hideBin} = require('yargs/helpers');
+
+process.on('SIGTERM', () => {
+	process.exit(0);
+});
+process.on('SIGINT', () => {
+	process.exit(0);
+});
+
+// eslint-disable-next-line no-unused-expressions
+yargs(hideBin(process.argv))
+	.command({
+		command: 'get-whitelisted-did [did]',
+		aliases: ['is'],
+		desc: 'Checks if did is whitelisted',
+		handler: argv => getWhitelistedDidCommand(argv).then()
+	})
+	.command({
+		command: 'get-approved',
+		aliases: ['a'],
+		desc: 'print a list of all dids that were approved',
+		handler: getApprovedDidsCommand
+	})
+	.command({
+		command: 'get-whitelisted',
+		aliases: ['wl'],
+		desc: "print a list of all did's that were whitelisted",
+		handler: getWhitelistedDidsCommand
+	})
+	.command({
+		command: 'get-not-whitelisted',
+		aliases: ['nwl'],
+		desc: "print a list of all did's that were approved but not whitelisted",
+		handler: getNotWhitelistedDidsCommand
+	})
+	.command({
+		command: 'fix-not-whitelisted',
+		aliases: ['fnwl'],
+		desc: "whitelist all did's that were approved but not whitelisted",
+		handler: fixNotWhitelistedDidsCommand
+	})
+	.onFinishCommand(() => {
+		defaultClient.destroy();
+		process.exit(0);
+	})
+	.demandCommand()
+	.help()
+	.strict().argv;
+
+async function getWhitelistedDidCommand(argv) {
+	const whitelisted = await isWhitelistedDid(argv.did);
+	console.log(`${argv.did} ${whitelisted ? 'whitelisted' : 'not whitelisted'}`);
+	return true;
+}
+
+async function getApprovedDidsCommand(argv) {
+	const dids = await fetchApprovedDIDs();
+	const whitelist = await checkWhitelistedDids(dids);
+	if (!whitelist.length) {
+		console.log('No DIDs');
+		return;
+	}
+	const toPrint = whitelist.map(
+		w => `${w.did}\t${w.whitelisted ? 'whitelisted' : 'not whitelisted'}`
+	);
+	console.log(toPrint.join('\n'));
+}
+
+async function getWhitelistedDidsCommand(argv) {
+	const dids = await fetchApprovedDIDs();
+	const whitelist = await checkWhitelistedDids(dids);
+	const notWhitelisted = whitelist.filter(w => !!w.whitelisted).map(w => w.did);
+	if (!notWhitelisted.length) {
+		console.log('No whitelisted DIDs');
+		return;
+	}
+	console.log(notWhitelisted.join('\n'));
+}
+
+async function getNotWhitelistedDidsCommand(argv) {
+	const dids = await fetchApprovedDIDs();
+	const whitelist = await checkWhitelistedDids(dids);
+	const notWhitelisted = whitelist.filter(w => !w.whitelisted).map(w => w.did);
+	if (!notWhitelisted.length) {
+		console.log('All DIDs are whitelisted');
+		return;
+	}
+	console.log(notWhitelisted.join('\n'));
+}
+
+async function fixNotWhitelistedDidsCommand(arv) {
+	const dids = await fetchApprovedDIDs();
+	const whitelist = await checkWhitelistedDids(dids);
+	const notWhitelisted = whitelist.filter(w => !w.whitelisted).map(w => w.did);
+	if (!notWhitelisted.length) {
+		console.log('Nothing to fix');
+		return;
+	}
+	await Promise.all(
+		notWhitelisted.map(async did => {
+			try {
+				const address = await didToAddress(did);
+				console.log('whitelisting', did, address);
+				await defaultClient.addWhitelisted(address);
+				console.log('Whitelisted', did, address);
+			} catch (error) {
+				console.error(error.message);
+				console.error('Failed to whitelist', did);
+			}
+		})
+	);
+}
+
+async function fetchApprovedDIDs() {
+	const approvedApplications = await kyccClient.applications.list(
+		{
+			template_id: config.kyccTemplate,
+			current_statuses: [kyccClient.statuses.APPROVED]
+		},
+		['owners', 'currentStatus']
+	);
+
+	const approvedApplicationUserIds = approvedApplications
+		.filter(a => a.owners && a.owners.length)
+		.map(a => a.owners[0]._id);
+
+	const users = await Promise.all(
+		approvedApplicationUserIds.map(async id => kyccClient.users.get(id))
+	);
+	return users.map(u => u.did).filter(u => !!u);
+}
+
+async function isWhitelistedDid(did) {
+	const address = await didToAddress(did);
+	return defaultClient.isWhitelisted(address);
+}
+
+async function checkWhitelistedDids(dids) {
+	return Promise.all(dids.map(async did => ({did, whitelisted: await isWhitelistedDid(did)})));
+}
