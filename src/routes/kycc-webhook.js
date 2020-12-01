@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const config = require('../config');
 const {didToAddress} = require('../utils');
-const {createWhitelistClient} = require('../whitelist');
+const whitelistClient = require('../whitelist').defaultClient;
 const kyccClient = require('../kycc-client');
 
 router.post('/', async (req, res) => {
@@ -62,7 +62,6 @@ router.post('/', async (req, res) => {
 		console.log(`XXX setting flag: user with DID ${user.did} is eligible for KeyFi`);
 
 		const address = await didToAddress(user.did);
-		const whitelistClient = createWhitelistClient(config);
 
 		if (!(await whitelistClient.isWhitelisted(address))) {
 			await whitelistClient.addWhitelisted(address);

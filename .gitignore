@@ -21,3 +21,4 @@ release
 .env
 
 src/test.js
+src/fix-kycc-applications.js
