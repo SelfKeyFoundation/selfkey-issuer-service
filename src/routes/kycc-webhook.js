@@ -73,7 +73,6 @@ router.post('/', async (req, res) => {
 			});
 		}
 
-		console.log(`XXX setting flag: user with DID ${user.did} is eligible for KeyFi`);
 		Sentry.addBreadcrumb({
 			category: 'kycc-webhook',
 			message: `converting did to address`,
@@ -93,7 +92,7 @@ router.post('/', async (req, res) => {
 		}
 		res.json({status: 'ok'});
 	} catch (error) {
-		console.log('XXX', error);
+		console.error(error);
 		Sentry.captureException(error);
 		res.status(500).json({status: 'error'});
 	}

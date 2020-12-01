@@ -9,10 +9,6 @@ Sentry.init({
 	sendDefaultPii: true,
 	serverName: config.sentryName,
 	release: `${pkg.name}@${pkg.version}`,
-	beforeBreadcrumb: b => {
-		console.log(b);
-		return b;
-	},
 	tracesSampleRate: 1.0
 });
 
