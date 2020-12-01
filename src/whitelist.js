@@ -141,6 +141,9 @@ const createWhitelistClient = opt => {
 				action: 'send',
 				args: [address]
 			});
+		},
+		destroy() {
+			web3.currentProvider.connection.close();
 		}
 	};
 };
