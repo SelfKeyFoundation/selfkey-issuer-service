@@ -1,10 +1,12 @@
+require('./sentry');
 var createError = require('http-errors');
+var Sentry = require('@sentry/node');
 var express = require('express');
 var logger = require('morgan');
 var kyccWebhookRouter = require('./routes/kycc-webhook');
 
 var app = express();
-
+app.use(Sentry.Handlers.requestHandler());
 app.use(logger('dev'));
 app.use(express.json());
 

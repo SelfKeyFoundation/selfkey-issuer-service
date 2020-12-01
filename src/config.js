@@ -9,5 +9,7 @@ module.exports = {
 	ethAddress: process.env.ETH_ADDRESS,
 	kyccApiUrl: process.env.KYCC_API_URL,
 	kyccApiKey: process.env.KYCC_API_KEY,
-	kyccTemplate: process.env.KYCC_TEMPLATE || null
+	kyccTemplate: process.env.KYCC_TEMPLATE || null,
+	sentryDSN: process.env.SENTRY_DSN,
+	sentryName: process.env.SENTRY_NAME
 };
