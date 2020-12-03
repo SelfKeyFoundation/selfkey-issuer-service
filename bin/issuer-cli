@@ -63,11 +63,26 @@ async function getInfoByEmailCommand(argv) {
 	const {applications, user, whitelisted} = await getInfoByEmail(argv.email);
 
 	if (!applications.length && user) {
-		console.log('no applications', user.did, whitelisted);
+		console.log(
+			'no applications for',
+			argv.email,
+			user.did,
+			whitelisted ? 'whitelisted' : 'not whitelisted'
+		);
 	}
+
+	const table = [];
+
 	applications.forEach(a => {
-		console.log(a.id, a.currentStatus, user.did, whitelisted);
+		table.push({
+			'Application ID': a.id,
+			Status: a.currentStatus,
+			DID: user.did,
+			Whitelisted: whitelisted
+		});
 	});
+
+	console.table(table, ['Application ID', 'Status', 'DID', 'Whitelisted']);
 }
 
 async function getWhitelistedDidCommand(argv) {
@@ -83,10 +98,8 @@ async function getApprovedDidsCommand(argv) {
 		console.log('No DIDs');
 		return;
 	}
-	const toPrint = whitelist.map(
-		w => `${w.did}\t${w.whitelisted ? 'whitelisted' : 'not whitelisted'}`
-	);
-	console.log(toPrint.join('\n'));
+	const toPrint = whitelist.map(w => ({DID: w.did, Whitelisted: w.whitelisted}));
+	console.table(toPrint, ['DID', 'Whitelisted']);
 }
 
 async function getWhitelistedDidsCommand(argv) {
