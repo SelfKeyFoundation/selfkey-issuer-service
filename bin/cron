@@ -19,11 +19,19 @@ yargs(hideBin(process.argv))
 		aliases: ['wj'],
 		desc: 'Based on cron period, fix not whitelisted dids  periodically (defulat 5 mins)',
 		builder: yargs => {
-			yargs.positional('period', {
-				describe: 'period for the task in cron notation with optional seconds',
-				type: 'string',
-				default: '*/5 * * * *'
-			});
+			yargs
+				.positional('period', {
+					describe: 'period for the task in cron notation with optional seconds',
+					type: 'string',
+					default: '*/5 * * * *'
+				})
+				.check(argv => {
+					if (!cron.validate(argv.period)) {
+						console.log('check failed');
+						throw new Error(`Invalid cron period ${argv.period}`);
+					}
+					return true;
+				});
 		},
 		handler: fixPeriodicallyCommand
 	})
@@ -37,11 +45,12 @@ yargs(hideBin(process.argv))
 async function fixPeriodicallyCommand(argv) {
 	const period = argv.period;
 
-	console.log(period);
+	console.log('Starting fix whitelist service');
+	console.log('Period:', period);
 	cron.schedule(period, () => {
 		console.log('Running fix whitelist');
 		try {
-			shell.exec(`node ${__dirname}/issuer-cli fnwl`);
+			// shell.exec(`node ${__dirname}/issuer-cli fnwl`);
 			console.log('fix whitelist complete!');
 		} catch (error) {
 			console.error(error);
