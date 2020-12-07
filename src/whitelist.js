@@ -18,7 +18,7 @@ const fetchGasPrice = async (attempt = 0) => {
 		console.error(error);
 		if (attempt < 3) {
 			console.log('Will retry fetching gas in 1 sec');
-			await new Promise(resolve => setTimeout(resolve, 100));
+			await new Promise(resolve => setTimeout(resolve, 1000));
 			console.log('retrying to fetch gas');
 			return fetchGasPrice(attempt + 1);
 		}
