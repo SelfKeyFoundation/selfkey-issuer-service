@@ -87,9 +87,11 @@ router.post('/', async (req, res) => {
 			data: {address},
 			level: Sentry.Severity.Info
 		});
+
 		if (!(await whitelistClient.isWhitelisted(address))) {
 			await whitelistClient.addWhitelisted(address);
 		}
+
 		res.json({status: 'ok'});
 	} catch (error) {
 		console.error(error);

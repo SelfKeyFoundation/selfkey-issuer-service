@@ -26,3 +26,22 @@ Options:
   --version  Show version number                                       [boolean]
   --help     Show help                                                 [boolean]
 ```
+
+
+## Cron CLI
+
+```
+./bin/cron --help
+cron <command>
+
+Commands:
+  cron fix-whitelist-job [period]  Based on cron period, fix not whitelisted
+                                   dids  periodically (defulat 5 mins)
+                                                                   [aliases: wj]
+
+Positionals:
+  period  period for the task in cron notation with optional seconds
+                                               [string] [default: "*/5 * * * *"]
+
+
+  ```
