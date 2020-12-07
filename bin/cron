@@ -19,6 +19,13 @@ yargs(hideBin(process.argv))
 		command: 'fix-whitelist-job [cronPeriod]',
 		aliases: ['wj'],
 		desc: 'Based on cron period, fix not whitelisted dids  periodically (defulat 5 mins)',
+		builder: yargs => {
+			yargs.positional('period', {
+				describe: 'period for the task in cron notation with optional seconds',
+				type: 'string',
+				default: '*/5 * * * *'
+			});
+		},
 		handler: fixPeriodicallyCommand
 	})
 	.onFinishCommand(() => {
@@ -29,8 +36,9 @@ yargs(hideBin(process.argv))
 	.strict().argv;
 
 async function fixPeriodicallyCommand(argv) {
-	const period = argv.cronPeriod || '*/5 * * * *';
+	const period = argv.period;
 
+	console.log(period);
 	cron.schedule(period, () => {
 		console.log('Running fix whitelist');
 		try {

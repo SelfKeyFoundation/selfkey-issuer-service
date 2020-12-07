@@ -109,7 +109,8 @@ const createWhitelistClient = opt => {
 		},
 		async getNonce() {
 			const nonce = Math.max(
-				await web3.eth.getTransactionCount(wallet.address, 'pending'),
+				await web3.eth.getTransactionCount(wallet.address),
+				// await web3.eth.getTransactionCount(wallet.address, 'pending'),
 				this._lastNonce + 1
 			);
 			this._lastNonce = nonce;
