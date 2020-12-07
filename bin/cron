@@ -4,7 +4,6 @@ const yargs = require('yargs/yargs');
 const cron = require('node-cron');
 const shell = require('shelljs');
 const {hideBin} = require('yargs/helpers');
-const {defaultClient} = require('../src/whitelist');
 
 process.on('SIGTERM', () => {
 	process.exit(0);
@@ -16,7 +15,7 @@ process.on('SIGINT', () => {
 // eslint-disable-next-line no-unused-expressions
 yargs(hideBin(process.argv))
 	.command({
-		command: 'fix-whitelist-job [cronPeriod]',
+		command: 'fix-whitelist-job [period]',
 		aliases: ['wj'],
 		desc: 'Based on cron period, fix not whitelisted dids  periodically (defulat 5 mins)',
 		builder: yargs => {
