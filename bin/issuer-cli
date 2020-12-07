@@ -162,16 +162,16 @@ async function fixNotWhitelistedDidsCommand(arv) {
 		return;
 	}
 	let whitelisted = 0;
+	console.log('whitelisting', notWhitelisted.length, 'DIDs');
 	await Promise.all(
 		notWhitelisted.map(async did => {
 			try {
 				const address = await didToAddress(did);
-				console.log('whitelisting', did, address);
 				await defaultClient.addWhitelisted(address);
-				console.log('Whitelisted', did, address, ++whitelisted / notWhitelisted.length);
+				console.log(++whitelisted, '/', notWhitelisted.length, did);
 			} catch (error) {
+				console.error(++whitelisted, '/', notWhitelisted.length, did, 'failed');
 				console.error(error.message);
-				console.error('Failed to whitelist', did);
 			}
 		})
 	);
