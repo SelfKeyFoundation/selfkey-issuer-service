@@ -1,0 +1,60 @@
+#!/usr/bin/env node
+
+const yargs = require('yargs/yargs');
+const cron = require('node-cron');
+const shell = require('shelljs');
+const {hideBin} = require('yargs/helpers');
+
+process.on('SIGTERM', () => {
+	process.exit(0);
+});
+process.on('SIGINT', () => {
+	process.exit(0);
+});
+
+// eslint-disable-next-line no-unused-expressions
+yargs(hideBin(process.argv))
+	.command({
+		command: 'fix-whitelist-job [period]',
+		aliases: ['wj'],
+		desc: 'Based on cron period, fix not whitelisted dids  periodically (defulat 5 mins)',
+		builder: yargs => {
+			yargs
+				.positional('period', {
+					describe: 'period for the task in cron notation with optional seconds',
+					type: 'string',
+					default: '*/5 * * * *'
+				})
+				.check(argv => {
+					if (!cron.validate(argv.period)) {
+						console.log('check failed');
+						throw new Error(`Invalid cron period ${argv.period}`);
+					}
+					return true;
+				});
+		},
+		handler: fixPeriodicallyCommand
+	})
+	.onFinishCommand(() => {
+		process.exit(0);
+	})
+	.demandCommand()
+	.help()
+	.strict().argv;
+
+async function fixPeriodicallyCommand(argv) {
+	const period = argv.period;
+
+	console.log('Starting fix whitelist service');
+	console.log('Period:', period);
+	cron.schedule(period, () => {
+		console.log('Running fix whitelist');
+		try {
+			// shell.exec(`node ${__dirname}/issuer-cli fnwl`);
+			console.log('fix whitelist complete!');
+		} catch (error) {
+			console.error(error);
+		}
+	});
+	return new Promise(() => {});
+}
