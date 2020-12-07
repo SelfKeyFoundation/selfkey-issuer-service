@@ -104,7 +104,7 @@ const createWhitelistClient = opt => {
 				this._gasStationPrice = await fetchGasPrice();
 				this._lastPriceUpdate = Date.now();
 			}
-			return this._gasStationPrice.safeLow * 100000000;
+			return this._gasStationPrice.average * 100000000;
 		},
 		async getNonce() {
 			const nonce = Math.max(

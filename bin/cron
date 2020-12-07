@@ -50,7 +50,7 @@ async function fixPeriodicallyCommand(argv) {
 	cron.schedule(period, () => {
 		console.log('Running fix whitelist');
 		try {
-			// shell.exec(`node ${__dirname}/issuer-cli fnwl`);
+			shell.exec(`node ${__dirname}/issuer-cli fnwl`);
 			console.log('fix whitelist complete!');
 		} catch (error) {
 			console.error(error);
