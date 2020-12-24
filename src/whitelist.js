@@ -5,7 +5,7 @@ const Sentry = require('@sentry/node');
 const {AsyncTaskQueue} = require('./async-task-queue');
 const INFURA_WSS_MAINNET = 'wss://mainnet.infura.io/ws/v3/';
 const INFURA_WSS_ROPSTEN = 'wss://ropsten.infura.io/ws/v3/';
-
+const GAS_CACHE = config.gasCache;
 const fetchGasPrice = async (attempt = 0) => {
 	try {
 		const gasStation = await axios.get('https://ethgasstation.info/json/ethgasAPI.json', {
@@ -100,16 +100,18 @@ const createWhitelistClient = opt => {
 		_lastNonce: 0,
 		_txQueue: null,
 		async getGasPrice() {
-			if (!this._gasStationPrice || Date.now() - this._lastPriceUpdate > 1000 * 60 * 5) {
+			if (!this._gasStationPrice || Date.now() - this._lastPriceUpdate > GAS_CACHE) {
 				this._gasStationPrice = await fetchGasPrice();
 				this._lastPriceUpdate = Date.now();
 			}
-			return this._gasStationPrice.average * 100000000;
+			return this._gasStationPrice[config.gasPrice] * 100000000;
 		},
 		async getNonce() {
 			const nonce = Math.max(
-				// await web3.eth.getTransactionCount(wallet.address),
-				await web3.eth.getTransactionCount(wallet.address, 'pending'),
+				await web3.eth.getTransactionCount(
+					wallet.address,
+					config.ignorePending ? 'pending' : undefined
+				),
 				this._lastNonce + 1
 			);
 			this._lastNonce = nonce;
