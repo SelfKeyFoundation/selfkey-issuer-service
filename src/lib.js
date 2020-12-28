@@ -64,31 +64,32 @@ async function fetchApprovedDIDs(pageSize = 100, updateLimit = null) {
 	return users.map(u => u.did).filter(u => !!u);
 }
 
-async function fetchAllApplications() {
+async function fetchAllApplications(pageSize = 100) {
 	let applications = await kyccClient.applications.list(
 		{
 			template_id: config.kyccTemplate,
-			limit: 1000
+			limit: pageSize
 		},
 		['id', 'owners', 'currentStatus']
 	);
 
-	if (applications.length === 1000) {
+	if (applications.length === pageSize) {
 		let hasMore = true;
 		let page = 1;
 		while (hasMore) {
 			let apps = await kyccClient.applications.list(
 				{
 					template_id: config.kyccTemplate,
-					limit: 1000,
-					skip: page * 1000
+					limit: pageSize,
+					skip: page * pageSize
 				},
 				['owners', 'currentStatus']
 			);
 			applications = applications.concat(apps);
-			if (apps.length < 1000) {
+			if (apps.length < pageSize) {
 				hasMore = false;
 			}
+			page++;
 		}
 	}
 	return applications;
@@ -99,8 +100,8 @@ async function isWhitelistedDid(did) {
 	return defaultClient.isWhitelisted(address);
 }
 
-async function getInfoByEmail(email) {
-	let applications = await fetchAllApplications();
+async function getInfoByEmail(email, pageSize) {
+	let applications = await fetchAllApplications(pageSize);
 	let user = null;
 	let whitelisted = false;
 	applications = applications.filter(

@@ -94,7 +94,7 @@ async function removeWhitelistedDID(argv) {
 }
 
 async function getInfoByEmailCommand(argv) {
-	const {applications, user, whitelisted} = await getInfoByEmail(argv.email);
+	const {applications, user, whitelisted} = await getInfoByEmail(argv.email, argv.kyccPageSize);
 
 	if (!user) {
 		console.log('info not found');
