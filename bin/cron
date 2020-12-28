@@ -25,6 +25,16 @@ yargs(hideBin(process.argv))
 					type: 'string',
 					default: '*/5 * * * *'
 				})
+				.option('max-updated-ts', {
+					describe: 'max-updated-ts',
+					type: 'number',
+					default: 24 * 60 * 60 * 1000
+				})
+				.option('kycc-page-size', {
+					describe: 'kycc-page-size',
+					type: 'number',
+					default: 100
+				})
 				.check(argv => {
 					if (!cron.validate(argv.period)) {
 						console.log('check failed');
@@ -50,7 +60,9 @@ async function fixPeriodicallyCommand(argv) {
 	cron.schedule(period, () => {
 		console.log('Running fix whitelist');
 		try {
-			shell.exec(`node ${__dirname}/issuer-cli fnwl`);
+			shell.exec(
+				`node ${__dirname}/issuer-cli fnwl --max-updated-ts=${+argv.maxUpdatedTs} --kycc-page-size=${+argv.kyccPageSize}`
+			);
 			console.log('fix whitelist complete!');
 		} catch (error) {
 			console.error(error);

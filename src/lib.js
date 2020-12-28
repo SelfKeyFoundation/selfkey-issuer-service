@@ -5,17 +5,33 @@ const {defaultClient} = require('../src/whitelist');
 
 const {didToAddress} = require('../src/utils');
 
-async function fetchApprovedDIDs() {
-	let approvedApplications = await kyccClient.applications.list(
-		{
-			template_id: config.kyccTemplate || undefined,
-			current_statuses: [kyccClient.statuses.APPROVED],
-			limit: 1000
-		},
-		['owners', 'currentStatus']
-	);
+async function fetchApprovedDIDs(pageSize = 100, updateLimit = null) {
+	let lastUpdateTs = Date.now();
+	let maxUpdateTs = 0;
+	if (updateLimit) {
+		maxUpdateTs = Date.now() - updateLimit;
+	}
+	const params = {
+		template_id: config.kyccTemplate || undefined,
+		current_statuses: [kyccClient.statuses.APPROVED],
+		limit: pageSize
+	};
 
-	if (approvedApplications.length === 1000) {
+	if (updateLimit) {
+		params.sort = '-updatedAt';
+	}
+
+	let approvedApplications = await kyccClient.applications.list(params, [
+		'owners',
+		'currentStatus',
+		'updatedAt'
+	]);
+
+	lastUpdateTs = new Date(
+		approvedApplications[approvedApplications.length - 1].updatedAt
+	).getTime();
+
+	if (approvedApplications.length === pageSize && lastUpdateTs - maxUpdateTs > 0) {
 		let hasMore = true;
 		let page = 1;
 		while (hasMore) {
@@ -23,15 +39,18 @@ async function fetchApprovedDIDs() {
 				{
 					template_id: config.kyccTemplate,
 					current_statuses: [kyccClient.statuses.APPROVED],
-					limit: 1000,
-					skip: page * 1000
+					limit: pageSize,
+					skip: page * pageSize
 				},
-				['owners', 'currentStatus']
+				['owners', 'currentStatus', 'updatedAt']
 			);
 			approvedApplications = approvedApplications.concat(apps);
-			if (apps.length < 1000) {
+			lastUpdateTs = new Date(apps[apps.length - 1].updatedAt).getTime();
+
+			if (apps.length < pageSize || lastUpdateTs - maxUpdateTs < 0) {
 				hasMore = false;
 			}
+			page++;
 		}
 	}
 

@@ -20,6 +20,16 @@ process.on('SIGINT', () => {
 
 // eslint-disable-next-line no-unused-expressions
 yargs(hideBin(process.argv))
+	.option('max-updated-ts', {
+		describe: 'max-updated-ts',
+		type: 'number',
+		default: undefined
+	})
+	.option('kycc-page-size', {
+		describe: 'kycc-page-size',
+		type: 'number',
+		default: 100
+	})
 	.command({
 		command: 'get-whitelisted-did [did]',
 		aliases: ['is'],
@@ -121,7 +131,7 @@ async function getWhitelistedDidCommand(argv) {
 }
 
 async function getApprovedDidsCommand(argv) {
-	const dids = await fetchApprovedDIDs();
+	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
 	const whitelist = await checkWhitelistedDids(dids);
 	if (!whitelist.length) {
 		console.log('No DIDs');
@@ -132,7 +142,7 @@ async function getApprovedDidsCommand(argv) {
 }
 
 async function getWhitelistedDidsCommand(argv) {
-	const dids = await fetchApprovedDIDs();
+	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
 	const whitelist = await checkWhitelistedDids(dids);
 	const notWhitelisted = whitelist.filter(w => !!w.whitelisted).map(w => w.did);
 	if (!notWhitelisted.length) {
@@ -143,7 +153,7 @@ async function getWhitelistedDidsCommand(argv) {
 }
 
 async function getNotWhitelistedDidsCommand(argv) {
-	const dids = await fetchApprovedDIDs();
+	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
 	const whitelist = await checkWhitelistedDids(dids);
 	const notWhitelisted = whitelist.filter(w => !w.whitelisted).map(w => w.did);
 	if (!notWhitelisted.length) {
@@ -153,8 +163,8 @@ async function getNotWhitelistedDidsCommand(argv) {
 	console.log(notWhitelisted.join('\n'));
 }
 
-async function fixNotWhitelistedDidsCommand(arv) {
-	const dids = await fetchApprovedDIDs();
+async function fixNotWhitelistedDidsCommand(argv) {
+	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
 	const whitelist = await checkWhitelistedDids(dids);
 	const notWhitelisted = whitelist.filter(w => !w.whitelisted).map(w => w.did);
 	if (!notWhitelisted.length) {
