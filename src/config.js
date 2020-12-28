@@ -14,5 +14,6 @@ module.exports = {
 	sentryName: process.env.SENTRY_NAME,
 	gasCache: +(process.env.GAS_CACHE || 1000 * 60 * 5),
 	gasPrice: process.env.GAS_PRICE || 'average',
-	ignorePending: !!process.env.IGNORE_PENDING
+	ignorePending: !!process.env.IGNORE_PENDING,
+	maxGasPrice: process.env.MAX_GAS_PRICE
 };

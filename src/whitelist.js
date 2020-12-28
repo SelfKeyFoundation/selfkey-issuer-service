@@ -6,6 +6,8 @@ const {AsyncTaskQueue} = require('./async-task-queue');
 const INFURA_WSS_MAINNET = 'wss://mainnet.infura.io/ws/v3/';
 const INFURA_WSS_ROPSTEN = 'wss://ropsten.infura.io/ws/v3/';
 const GAS_CACHE = config.gasCache;
+const MAX_GAS_PRICE = config.maxGasPrice;
+
 const fetchGasPrice = async (attempt = 0) => {
 	try {
 		const gasStation = await axios.get('https://ethgasstation.info/json/ethgasAPI.json', {
@@ -104,7 +106,11 @@ const createWhitelistClient = opt => {
 				this._gasStationPrice = await fetchGasPrice();
 				this._lastPriceUpdate = Date.now();
 			}
-			return this._gasStationPrice[config.gasPrice] * 100000000;
+
+			const gasPrice = MAX_GAS_PRICE
+				? Math.min(MAX_GAS_PRICE * 10, this._gasStationPrice[config.gasPrice])
+				: this._gasStationPrice[config.gasPrice];
+			return gasPrice * 100000000;
 		},
 		async getNonce() {
 			const nonce = Math.max(
