@@ -1,116 +1,89 @@
 const config = require('../src/config');
+const debug = require('debug')('issuer:lib');
+const _ = require('lodash');
 const kyccClient = require('../src/kycc-client');
-
 const {defaultClient} = require('../src/whitelist');
-
-const {didToAddress} = require('../src/utils');
+const {didToAddress, sleep} = require('../src/utils');
 
 async function fetchApprovedDIDs(pageSize = 100, updateLimit = null) {
+	const approvedApplications = await fetchApplications(
+		{current_statuses: [kyccClient.statuses.APPROVED]},
+		['owners'],
+		pageSize,
+		updateLimit
+	);
+
+	return approvedApplications
+		.filter(a => a.owners && a.owners.length)
+		.map(a => a.owners[0].did)
+		.filter(u => !!u);
+}
+
+async function fetchApplications(params, fields = [], pageSize = 100, updateLimit = null) {
 	let lastUpdateTs = Date.now();
 	let maxUpdateTs = 0;
 	if (updateLimit) {
 		maxUpdateTs = Date.now() - updateLimit;
 	}
-	const params = {
-		template_id: config.kyccTemplate || undefined,
-		current_statuses: [kyccClient.statuses.APPROVED],
+	params = {
+		...params,
+		template_id: config.kyccTemplate,
 		limit: pageSize
 	};
-
 	if (updateLimit) {
 		params.sort = '-updatedAt';
 	}
-
-	let approvedApplications = await kyccClient.applications.list(params, [
-		'owners',
-		'currentStatus',
-		'updatedAt'
-	]);
-
-	lastUpdateTs = new Date(
-		approvedApplications[approvedApplications.length - 1].updatedAt
-	).getTime();
-
-	if (approvedApplications.length === pageSize && lastUpdateTs - maxUpdateTs > 0) {
-		let hasMore = true;
-		let page = 1;
-		while (hasMore) {
-			let apps = await kyccClient.applications.list(
-				{
-					template_id: config.kyccTemplate,
-					current_statuses: [kyccClient.statuses.APPROVED],
-					limit: pageSize,
-					skip: page * pageSize
-				},
-				['owners', 'currentStatus', 'updatedAt']
-			);
-			approvedApplications = approvedApplications.concat(apps);
-			lastUpdateTs = new Date(apps[apps.length - 1].updatedAt).getTime();
-
-			if (apps.length < pageSize || lastUpdateTs - maxUpdateTs < 0) {
-				hasMore = false;
-			}
-			page++;
+	fields = _.uniq(['id', 'owners', 'currentStatus', 'updatedAt', ...fields]);
+	debug('Preparing to fetch applications', {params, fields, pageSize, updateLimit});
+	let applications = [];
+	let hasMore = true;
+	let page = 0;
+	do {
+		debug('Fetching applications page', {
+			params: {
+				...params,
+				skip: page * pageSize
+			},
+			fields
+		});
+		let apps = await kyccClient.applications.list(
+			{
+				...params,
+				skip: page * pageSize
+			},
+			fields
+		);
+		applications = applications.concat(apps);
+		lastUpdateTs = new Date(apps[apps.length - 1].updatedAt).getTime();
+		if (apps.length < pageSize || lastUpdateTs - maxUpdateTs < 0) {
+			hasMore = false;
 		}
-	}
-
-	const approvedApplicationUserIds = approvedApplications
-		.filter(a => a.owners && a.owners.length)
-		.map(a => a.owners[0]._id);
-
-	const users = await Promise.all(
-		approvedApplicationUserIds.map(async id => kyccClient.users.get(id))
-	);
-	return users.map(u => u.did).filter(u => !!u);
-}
-
-async function fetchAllApplications(pageSize = 100) {
-	let applications = await kyccClient.applications.list(
-		{
-			template_id: config.kyccTemplate,
-			limit: pageSize
-		},
-		['id', 'owners', 'currentStatus']
-	);
-
-	if (applications.length === pageSize) {
-		let hasMore = true;
-		let page = 1;
-		while (hasMore) {
-			let apps = await kyccClient.applications.list(
-				{
-					template_id: config.kyccTemplate,
-					limit: pageSize,
-					skip: page * pageSize
-				},
-				['owners', 'currentStatus']
-			);
-			applications = applications.concat(apps);
-			if (apps.length < pageSize) {
-				hasMore = false;
-			}
-			page++;
+		page++;
+		if (config.kyccReqDelay) {
+			debug('delaying for', config.kyccReqDelay, 'milliseconds');
+			await sleep(config.kyccReqDelay);
 		}
-	}
+	} while (hasMore);
+
+	debug('finished application fetch');
 	return applications;
 }
 
 async function isWhitelistedDid(did) {
 	const address = await didToAddress(did);
+	debug('checking whitelist status for', address);
 	return defaultClient.isWhitelisted(address);
 }
 
 async function getInfoByEmail(email, pageSize) {
-	let applications = await fetchAllApplications(pageSize);
+	let applications = await fetchApplications({email}, [], pageSize);
 	let user = null;
 	let whitelisted = false;
-	applications = applications.filter(
-		a => a.owners[0] && a.owners[0].email.toLowerCase() === email.toLowerCase()
-	);
 	if (!applications || !applications.length) {
+		debug('no applications for', email, 'fetching user directly');
 		user = await getUserByEmail(email);
 	} else {
-		user = await kyccClient.users.get(applications[0].owners[0]._id);
+		user = applications[0].owners[0];
 	}
 	if (user && user.did) {
 		whitelisted = await isWhitelistedDid(user.did);
@@ -119,20 +92,7 @@ async function getInfoByEmail(email, pageSize) {
 }
 
 async function getUserByEmail(email) {
-	let hasMore = true;
-	let page = 0;
-	while (hasMore) {
-		const users = await kyccClient.users.list({skip: page * 100, limit: 100}, ['id', 'email']);
-		const usr = users.find(u => u.email.toLowerCase() === email.toLowerCase());
-		if (usr) {
-			return kyccClient.users.get(usr.id);
-		}
-		if (!users.length) {
-			hasMore = false;
-		}
-		page++;
-	}
-	return null;
+	return kyccClient.users.list({email});
 }
 
 async function checkWhitelistedDids(dids) {
@@ -141,7 +101,7 @@ async function checkWhitelistedDids(dids) {
 
 module.exports = {
 	fetchApprovedDIDs,
-	fetchAllApplications,
+	fetchAllApplications: fetchApplications,
 	isWhitelistedDid,
 	getInfoByEmail,
 	getUserByEmail,

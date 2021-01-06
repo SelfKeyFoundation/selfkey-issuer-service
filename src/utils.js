@@ -23,4 +23,6 @@ const didToAddress = async did => {
 	}
 };
 
-module.exports = {didToAddress};
+const sleep = timeout => new Promise(resolve => setTimeout(() => resolve(), timeout));
+
+module.exports = {didToAddress, sleep};

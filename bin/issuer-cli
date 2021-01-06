@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 const yargs = require('yargs/yargs');
+const debug = require('debug')('issuer:cli');
 const {hideBin} = require('yargs/helpers');
 const {defaultClient} = require('../src/whitelist');
 const {didToAddress} = require('../src/utils');
@@ -84,16 +85,19 @@ yargs(hideBin(process.argv))
 	.strict().argv;
 
 async function whitelistDID(argv) {
+	debug('whitelisting did', argv.did);
 	const address = await didToAddress(argv.did);
 	await defaultClient.addWhitelisted(address);
 }
 
 async function removeWhitelistedDID(argv) {
+	debug('removing did from whitelist', argv.did);
 	const address = await didToAddress(argv.did);
 	await defaultClient.removeWhitelisted(address);
 }
 
 async function getInfoByEmailCommand(argv) {
+	debug('collecting info for email', argv.email);
 	const {applications, user, whitelisted} = await getInfoByEmail(argv.email, argv.kyccPageSize);
 
 	if (!user) {
@@ -125,12 +129,14 @@ async function getInfoByEmailCommand(argv) {
 }
 
 async function getWhitelistedDidCommand(argv) {
+	debug('checking whitelist status for', argv.did);
 	const whitelisted = await isWhitelistedDid(argv.did);
 	console.log(`${argv.did} ${whitelisted ? 'whitelisted' : 'not whitelisted'}`);
 	return true;
 }
 
 async function getApprovedDidsCommand(argv) {
+	debug('collecting approved dids');
 	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
 	const whitelist = await checkWhitelistedDids(dids);
 	if (!whitelist.length) {
@@ -142,6 +148,7 @@ async function getApprovedDidsCommand(argv) {
 }
 
 async function getWhitelistedDidsCommand(argv) {
+	debug('collecting whitelisted dids');
 	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
 	const whitelist = await checkWhitelistedDids(dids);
 	const notWhitelisted = whitelist.filter(w => !!w.whitelisted).map(w => w.did);
@@ -153,6 +160,7 @@ async function getWhitelistedDidsCommand(argv) {
 }
 
 async function getNotWhitelistedDidsCommand(argv) {
+	debug('collecting not whitelisted dids');
 	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
 	const whitelist = await checkWhitelistedDids(dids);
 	const notWhitelisted = whitelist.filter(w => !w.whitelisted).map(w => w.did);
@@ -164,6 +172,7 @@ async function getNotWhitelistedDidsCommand(argv) {
 }
 
 async function fixNotWhitelistedDidsCommand(argv) {
+	debug('fixing not whitelisted dids');
 	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
 	const whitelist = await checkWhitelistedDids(dids);
 	const notWhitelisted = whitelist.filter(w => !w.whitelisted).map(w => w.did);
@@ -178,9 +187,9 @@ async function fixNotWhitelistedDidsCommand(argv) {
 			try {
 				const address = await didToAddress(did);
 				await defaultClient.addWhitelisted(address);
-				console.log(++whitelisted, '/', notWhitelisted.length, did);
+				console.log(`${++whitelisted}/${notWhitelisted.length}`, did);
 			} catch (error) {
-				console.error(++whitelisted, '/', notWhitelisted.length, did, 'failed');
+				console.error(`${++whitelisted}/${notWhitelisted.length}`, did, 'failed');
 				console.error(error.message);
 			}
 		})
