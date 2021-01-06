@@ -50,6 +50,12 @@ yargs(hideBin(process.argv))
 		handler: getWhitelistedDidsCommand
 	})
 	.command({
+		command: 'get-whitelisted-addresses',
+		aliases: ['wla'],
+		desc: 'print a list of all addresses that were whitelisted',
+		handler: getWhitelistedAddressesCommand
+	})
+	.command({
 		command: 'get-not-whitelisted',
 		aliases: ['nwl'],
 		desc: "print a list of all did's that were approved but not whitelisted",
@@ -159,6 +165,19 @@ async function getWhitelistedDidsCommand(argv) {
 	console.log(notWhitelisted.join('\n'));
 }
 
+async function getWhitelistedAddressesCommand(argv) {
+	debug('collecting whitelisted addresses');
+	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
+	const whitelist = await checkWhitelistedDids(dids);
+	const notWhitelisted = await Promise.all(
+		whitelist.filter(w => !!w.whitelisted).map(w => didToAddress(w.did))
+	);
+	if (!notWhitelisted.length) {
+		console.log('No whitelisted addresses');
+		return;
+	}
+	console.log(notWhitelisted.join('\n'));
+}
 async function getNotWhitelistedDidsCommand(argv) {
 	debug('collecting not whitelisted dids');
 	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
