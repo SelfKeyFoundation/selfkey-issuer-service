@@ -2,8 +2,8 @@ const config = require('../src/config');
 const debug = require('debug')('issuer:lib');
 const _ = require('lodash');
 const kyccClient = require('../src/kycc-client');
-const {defaultClient} = require('../src/whitelist');
-const {didToAddress, sleep} = require('../src/utils');
+
+const {sleep} = require('../src/utils');
 
 async function fetchApprovedDIDs(pageSize = 100, updateLimit = null) {
 	const approvedApplications = await fetchApplications(
@@ -69,41 +69,26 @@ async function fetchApplications(params, fields = [], pageSize = 100, updateLimi
 	return applications;
 }
 
-async function isWhitelistedDid(did) {
-	const address = await didToAddress(did);
-	debug('checking whitelist status for', address);
-	return defaultClient.isWhitelisted(address);
-}
-
 async function getInfoByEmail(email, pageSize) {
 	let applications = await fetchApplications({email}, [], pageSize);
 	let user = null;
-	let whitelisted = false;
 	if (!applications || !applications.length) {
 		debug('no applications for', email, 'fetching user directly');
 		user = await getUserByEmail(email);
 	} else {
 		user = applications[0].owners[0];
 	}
-	if (user && user.did) {
-		whitelisted = await isWhitelistedDid(user.did);
-	}
-	return {applications, user, whitelisted};
+
+	return {applications, user};
 }
 
 async function getUserByEmail(email) {
 	return kyccClient.users.list({email});
 }
 
-async function checkWhitelistedDids(dids) {
-	return Promise.all(dids.map(async did => ({did, whitelisted: await isWhitelistedDid(did)})));
-}
-
 module.exports = {
 	fetchApprovedDIDs,
 	fetchAllApplications: fetchApplications,
-	isWhitelistedDid,
 	getInfoByEmail,
-	getUserByEmail,
-	checkWhitelistedDids
+	getUserByEmail
 };

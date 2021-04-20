@@ -1,5 +1,5 @@
 # Build common stage
-FROM node:10-alpine as common
+FROM node:12-alpine as common
 
 RUN apk add --no-cache git
 
