@@ -1482,10 +1482,10 @@
   dependencies:
     any-observable "^0.3.0"
 
-"@selfkey/agent@^0.0.1":
-  version "0.0.1"
-  resolved "https://registry.yarnpkg.com/@selfkey/agent/-/agent-0.0.1.tgz#76b85926b00695395e6feaf7e59180b65e40cb21"
-  integrity sha512-AcIha/KBPgNATzJYboNewJeFRs+7NMs+giTH0JExDX0uEv76C0BHonJ6vgMQ6DJZgLcUFXjczm1t8iLxhWXoNg==
+"@selfkey/agent@0.0.2":
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/@selfkey/agent/-/agent-0.0.2.tgz#8ae95de5d47ac802ea9cbda2d169000ac15edecc"
+  integrity sha512-JVYzW1wOu0wJL7ukAgMmpPF6CaH4oU/xFONKFuhJXJft8L7AxSq266cLpTXVoCCURDLv5dh3reWmFRmDSF0J+A==
   dependencies:
     "@veramo/core" "^1.1.1-next.26"
     "@veramo/credential-w3c" "^1.1.1-next.26"
