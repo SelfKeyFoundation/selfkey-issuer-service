@@ -1505,10 +1505,10 @@
     ethr-did-resolver "4.0.1"
     web-did-resolver "2.0.4"
 
-"@selfkey/node-lib@1.2.1":
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/@selfkey/node-lib/-/node-lib-1.2.1.tgz#120986d2256974c4a7e506d6ab0b3e4d88425b87"
-  integrity sha512-VrnQoiffjpag+n7KqM6930TfWsvKhTUQDXWugx70pZwuRPkSkeAgKavPlkHvLILU36Ibm6djJ8rxit//XHjAaA==
+"@selfkey/node-lib@1.2.2":
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/@selfkey/node-lib/-/node-lib-1.2.2.tgz#f7d3a4e382f2b9b9d859ed4e4ece0435ea8191a7"
+  integrity sha512-7oADEjkgl2q57aRTaWA+8OYvjYKyccmKpF6wmitfL0CwnLzVwA8PKip9p0svE7y68DeYAkVZOrQFGRhd15dNBw==
   dependencies:
     ajv "6.10.2"
     ethereumjs-util "6.2.0"

@@ -127,7 +127,11 @@ router.post('/', async (req, res) => {
 
 		const credential = await req.selfkeyAgent.issueCredential({credentialSubject});
 
-		console.log(credential);
+		await kyccClient.applications.attachments.add(applicationId, 'credential', {
+			buffer: Buffer.from(JSON.stringify(credential), 'utf8'),
+			mimeType: 'application/json',
+			filename: 'credential.json'
+		});
 
 		res.json({status: 'ok'});
 	} catch (error) {
