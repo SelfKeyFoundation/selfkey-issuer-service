@@ -1,3 +1,4 @@
 *.jason
 README.md
 appveyor.yml
+charts/*

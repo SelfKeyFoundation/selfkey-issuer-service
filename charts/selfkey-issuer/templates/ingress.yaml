@@ -1,0 +1,29 @@
+{{- $fullName := include "skis.fullname" . -}}
+{{- $servicePort := .Values.service.port -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ $fullName }}
+  labels:
+    app.kubernetes.io/name: {{ include "skis.name" . }}
+    helm.sh/chart: {{ include "skis.chart" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/managed-by: {{ .Release.Service }}
+  annotations:
+    {{- if .Values.ingressDomain }}
+    external-dns.alpha.kubernetes.io/hostname: {{ .Values.ingressDomain }}
+    {{- end }}
+    {{- if .Values.ingressHttpDisable }}
+    kubernetes.io/ingress.allow-http: "false"
+    {{- end }}
+spec:
+  {{- if and .Values.tlsSecret .Values.ingressDomain }}
+  tls:
+  - hosts:
+      - {{ .Values.ingressDomain }}
+    secretName: {{ .Values.tlsSecret }}
+  {{- end }}
+
+  backend:
+    serviceName: {{ $fullName }}
+    servicePort: {{ $servicePort }}

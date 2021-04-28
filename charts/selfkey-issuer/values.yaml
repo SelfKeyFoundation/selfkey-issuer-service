@@ -1,0 +1,18 @@
+replicaCount: 1
+
+image: asia.gcr.io/selfkey2/selfkey-issuer-service
+imagePullPolicy: IfNotPresent
+
+service:
+    type: NodePort
+    port: 3000
+
+resources: {}
+
+ingressDomain: false
+ingressHttpDisable: false
+tlsSecret: false
+command:
+    - 'node'
+args:
+    - './bin/www'
