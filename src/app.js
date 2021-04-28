@@ -17,16 +17,17 @@ const dbConnection = createConnection({
 	entities: Entities
 });
 
-var app = express();
-app.use((req, res, next) => {
-	req.selfkeyAgent = new SelfkeyAgent({
-		dbConnection,
-		infuraId: config.infuraProjectId,
-		kmsKey: config.kmsKey,
-		agentName: config.agentName,
-		didProvider: 'did:web'
-	});
+const selfkeyAgent = new SelfkeyAgent({
+	dbConnection,
+	infuraId: config.infuraProjectId,
+	kmsKey: config.kmsKey,
+	agentName: config.agentName,
+	didProvider: 'did:web'
+});
 
+var app = express();
+app.use(async (req, res, next) => {
+	req.selfkeyAgent = selfkeyAgent;
 	next();
 });
 app.use(Sentry.Handlers.requestHandler());
@@ -35,6 +36,7 @@ app.use(express.json());
 
 app.get('/.well-known/did.json', async (req, res, next) => {
 	const did = await req.selfkeyAgent.ensureAgentDID();
+	console.log(did);
 	try {
 		const doc = await req.selfkeyAgent.generateDIDDoc(did);
 		return res.json(doc);

@@ -18,5 +18,5 @@ module.exports = {
 	ignorePending: !!process.env.IGNORE_PENDING,
 	maxGasPrice: process.env.MAX_GAS_PRICE,
 	agentName: 'issuer.selfkey.org',
-	dbName: 'issuer-db'
+	dbName: 'issuer-db.sqlite'
 };

@@ -18,7 +18,7 @@
     ]
   },
   "dependencies": {
-    "@selfkey/agent": "0.0.2",
+    "@selfkey/agent": "0.0.4",
     "@selfkey/node-lib": "1.2.2",
     "@sentry/node": "^5.27.6",
     "@sentry/tracing": "^5.27.6",
