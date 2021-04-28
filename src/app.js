@@ -2,13 +2,49 @@ require('./sentry');
 var createError = require('http-errors');
 var Sentry = require('@sentry/node');
 var express = require('express');
+var config = require('./config');
 var logger = require('morgan');
+var SelfkeyAgent = require('@selfkey/agent').default;
+var Entities = require('@selfkey/agent/lib/entities').default;
+var {createConnection} = require('typeorm');
 var kyccWebhookRouter = require('./routes/kycc-webhook');
 
+const dbConnection = createConnection({
+	type: 'sqlite',
+	database: config.dbName,
+	synchronize: true,
+	logging: ['error', 'info', 'warn'],
+	entities: Entities
+});
+
+const selfkeyAgent = new SelfkeyAgent({
+	dbConnection,
+	infuraId: config.infuraProjectId,
+	kmsKey: config.kmsKey,
+	agentName: config.agentName,
+	didProvider: 'did:web'
+});
+
 var app = express();
+app.use(async (req, res, next) => {
+	req.selfkeyAgent = selfkeyAgent;
+	next();
+});
 app.use(Sentry.Handlers.requestHandler());
 app.use(logger('dev'));
 app.use(express.json());
+
+app.get('/.well-known/did.json', async (req, res, next) => {
+	const did = await req.selfkeyAgent.ensureAgentDID();
+	console.log(did);
+	try {
+		const doc = await req.selfkeyAgent.generateDIDDoc(did);
+		return res.json(doc);
+	} catch (error) {
+		console.error(error);
+		next(error);
+	}
+});
 
 app.get('/healthz', (req, res) => res.json({status: 'ok'}));
 

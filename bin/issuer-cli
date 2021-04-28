@@ -4,13 +4,8 @@ const yargs = require('yargs/yargs');
 const debug = require('debug')('issuer:cli');
 const {hideBin} = require('yargs/helpers');
 const {defaultClient} = require('../src/whitelist');
-const {didToAddress} = require('../src/utils');
-const {
-	fetchApprovedDIDs,
-	isWhitelistedDid,
-	getInfoByEmail,
-	checkWhitelistedDids
-} = require('../src/lib');
+
+const {fetchApprovedDIDs, getInfoByEmail, checkWhitelistedDids} = require('../src/lib');
 
 process.on('SIGTERM', () => {
 	process.exit(0);
@@ -31,52 +26,14 @@ yargs(hideBin(process.argv))
 		type: 'number',
 		default: 100
 	})
-	.command({
-		command: 'get-whitelisted-did [did]',
-		aliases: ['is'],
-		desc: 'Checks if did is whitelisted',
-		handler: argv => getWhitelistedDidCommand(argv).then()
-	})
+
 	.command({
 		command: 'get-approved',
 		aliases: ['a'],
 		desc: 'print a list of all dids that were approved',
 		handler: getApprovedDidsCommand
 	})
-	.command({
-		command: 'get-whitelisted',
-		aliases: ['wl'],
-		desc: "print a list of all did's that were whitelisted",
-		handler: getWhitelistedDidsCommand
-	})
-	.command({
-		command: 'get-whitelisted-addresses',
-		aliases: ['wla'],
-		desc: 'print a list of all addresses that were whitelisted',
-		handler: getWhitelistedAddressesCommand
-	})
-	.command({
-		command: 'get-not-whitelisted',
-		aliases: ['nwl'],
-		desc: "print a list of all did's that were approved but not whitelisted",
-		handler: getNotWhitelistedDidsCommand
-	})
-	.command({
-		command: 'fix-not-whitelisted',
-		aliases: ['fnwl'],
-		desc: "whitelist all did's that were approved but not whitelisted",
-		handler: fixNotWhitelistedDidsCommand
-	})
-	.command({
-		command: 'whitelist-did [did]',
-		desc: 'whitelist a given did',
-		handler: whitelistDID
-	})
-	.command({
-		command: 'remove-whitelisted-did [did]',
-		desc: 'remove a given did from whitelist',
-		handler: removeWhitelistedDID
-	})
+
 	.command({
 		command: 'get-info-by-email [email]',
 		desc: 'get info by email',
@@ -89,18 +46,6 @@ yargs(hideBin(process.argv))
 	.demandCommand()
 	.help()
 	.strict().argv;
-
-async function whitelistDID(argv) {
-	debug('whitelisting did', argv.did);
-	const address = await didToAddress(argv.did);
-	await defaultClient.addWhitelisted(address);
-}
-
-async function removeWhitelistedDID(argv) {
-	debug('removing did from whitelist', argv.did);
-	const address = await didToAddress(argv.did);
-	await defaultClient.removeWhitelisted(address);
-}
 
 async function getInfoByEmailCommand(argv) {
 	debug('collecting info for email', argv.email);
@@ -134,13 +79,6 @@ async function getInfoByEmailCommand(argv) {
 	console.table(table, ['Application ID', 'Status', 'DID', 'Whitelisted']);
 }
 
-async function getWhitelistedDidCommand(argv) {
-	debug('checking whitelist status for', argv.did);
-	const whitelisted = await isWhitelistedDid(argv.did);
-	console.log(`${argv.did} ${whitelisted ? 'whitelisted' : 'not whitelisted'}`);
-	return true;
-}
-
 async function getApprovedDidsCommand(argv) {
 	debug('collecting approved dids');
 	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
@@ -151,66 +89,4 @@ async function getApprovedDidsCommand(argv) {
 	}
 	const toPrint = whitelist.map(w => ({DID: w.did, Whitelisted: w.whitelisted}));
 	console.table(toPrint, ['DID', 'Whitelisted']);
-}
-
-async function getWhitelistedDidsCommand(argv) {
-	debug('collecting whitelisted dids');
-	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
-	const whitelist = await checkWhitelistedDids(dids);
-	const notWhitelisted = whitelist.filter(w => !!w.whitelisted).map(w => w.did);
-	if (!notWhitelisted.length) {
-		console.log('No whitelisted DIDs');
-		return;
-	}
-	console.log(notWhitelisted.join('\n'));
-}
-
-async function getWhitelistedAddressesCommand(argv) {
-	debug('collecting whitelisted addresses');
-	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
-	const whitelist = await checkWhitelistedDids(dids);
-	const notWhitelisted = await Promise.all(
-		whitelist.filter(w => !!w.whitelisted).map(w => didToAddress(w.did))
-	);
-	if (!notWhitelisted.length) {
-		console.log('No whitelisted addresses');
-		return;
-	}
-	console.log(notWhitelisted.join('\n'));
-}
-async function getNotWhitelistedDidsCommand(argv) {
-	debug('collecting not whitelisted dids');
-	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
-	const whitelist = await checkWhitelistedDids(dids);
-	const notWhitelisted = whitelist.filter(w => !w.whitelisted).map(w => w.did);
-	if (!notWhitelisted.length) {
-		console.log('All DIDs are whitelisted');
-		return;
-	}
-	console.log(notWhitelisted.join('\n'));
-}
-
-async function fixNotWhitelistedDidsCommand(argv) {
-	debug('fixing not whitelisted dids');
-	const dids = await fetchApprovedDIDs(argv.kyccPageSize, argv.maxUpdatedTs);
-	const whitelist = await checkWhitelistedDids(dids);
-	const notWhitelisted = whitelist.filter(w => !w.whitelisted).map(w => w.did);
-	if (!notWhitelisted.length) {
-		console.log('Nothing to fix');
-		return;
-	}
-	let whitelisted = 0;
-	console.log('whitelisting', notWhitelisted.length, 'DIDs');
-	await Promise.all(
-		notWhitelisted.map(async did => {
-			try {
-				const address = await didToAddress(did);
-				await defaultClient.addWhitelisted(address);
-				console.log(`${++whitelisted}/${notWhitelisted.length}`, did);
-			} catch (error) {
-				console.error(`${++whitelisted}/${notWhitelisted.length}`, did, 'failed');
-				console.error(error.message);
-			}
-		})
-	);
 }

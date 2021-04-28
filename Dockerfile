@@ -1,4 +1,4 @@
-FROM node:10 as build
+FROM node:12 as build
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ RUN yarn install --production
 COPY ./src ./src
 COPY ./bin ./bin
 
-FROM node:10-alpine
+FROM node:12-alpine
 
 WORKDIR /app
 ENV NODE_ENV production

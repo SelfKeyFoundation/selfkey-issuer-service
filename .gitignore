@@ -22,3 +22,6 @@ release
 
 src/test.js
 src/fix-kycc-applications.js
+
+issuer-db
+*sqlite

@@ -1,10 +1,31 @@
 const express = require('express');
 const router = express.Router();
 const config = require('../config');
-const {didToAddress} = require('../utils');
-const whitelistClient = require('../whitelist').defaultClient;
 const kyccClient = require('../kycc-client');
 const Sentry = require('@sentry/node');
+const countries = require('i18n-iso-countries');
+
+const FIRST_NAME_ATTRIBUTE = 'http://platform.selfkey.org/schema/attribute/first-name.json';
+const MIDDLE_NAME_ATTRIBUTE = 'http://platform.selfkey.org/schema/attribute/middle-name.json';
+const LAST_NAME_ATTRIBUTE = 'http://platform.selfkey.org/schema/attribute/last-name.json';
+const DOB_ATTRIBUTE = 'http://platform.selfkey.org/schema/attribute/date-of-birth.json';
+const NATIONALITY_ATTRIBUTE = 'http://platform.selfkey.org/schema/attribute/nationality.json';
+
+const parseApplicationAttributes = applicationAttributes =>
+	Object.keys(applicationAttributes).map(id => {
+		const {label, title, optional, schemaId, valid, value, description} = applicationAttributes[
+			id
+		];
+		return {
+			id,
+			title: label || title,
+			required: !optional,
+			schemaId,
+			valid,
+			data: value,
+			description
+		};
+	});
 
 router.post('/', async (req, res) => {
 	console.log('webhook received', JSON.stringify(req.body, null, 2));
@@ -73,24 +94,44 @@ router.post('/', async (req, res) => {
 			});
 		}
 
-		Sentry.addBreadcrumb({
-			category: 'kycc-webhook',
-			message: `converting did to address`,
-			data: {did: user.did},
-			level: Sentry.Severity.Info
-		});
-		const address = await didToAddress(user.did);
+		const attributes = parseApplicationAttributes(application.attributes);
 
-		Sentry.addBreadcrumb({
-			category: 'kycc-webhook',
-			message: `Setting address to whitelist`,
-			data: {address},
-			level: Sentry.Severity.Info
-		});
+		const credentialSubject = attributes.reduce(
+			(acc, curr) => {
+				if (!curr.data) {
+					return acc;
+				}
+				if (curr.schemaId === FIRST_NAME_ATTRIBUTE) {
+					acc.firstName = curr.data;
+				}
+				if (curr.schemaId === MIDDLE_NAME_ATTRIBUTE) {
+					acc.middleName = curr.data;
+				}
+				if (curr.schemaId === LAST_NAME_ATTRIBUTE) {
+					acc.lastName = curr.data;
+				}
+				if (curr.schemaId === NATIONALITY_ATTRIBUTE) {
+					acc.nationality = countries.getName(curr.data.country, 'en', {
+						select: 'official'
+					});
+				}
+				if (curr.schemaId === DOB_ATTRIBUTE) {
+					acc.dateOfBirth = curr.data;
+				}
+				return acc;
+			},
+			{
+				id: user.did
+			}
+		);
 
-		if (!(await whitelistClient.isWhitelisted(address))) {
-			await whitelistClient.addWhitelisted(address);
-		}
+		const credential = await req.selfkeyAgent.issueCredential({credentialSubject});
+
+		await kyccClient.applications.attachments.add(applicationId, 'credential', {
+			buffer: Buffer.from(JSON.stringify(credential), 'utf8'),
+			mimeType: 'application/json',
+			filename: 'credential.json'
+		});
 
 		res.json({status: 'ok'});
 	} catch (error) {
