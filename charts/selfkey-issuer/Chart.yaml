@@ -2,4 +2,4 @@ apiVersion: v1
 appVersion: '1.0'
 description: selfkey-issuer-service
 name: selfkey-issuer-service
-version: 1.1.1
+version: 1.1.2

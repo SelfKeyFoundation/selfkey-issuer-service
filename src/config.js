@@ -17,6 +17,6 @@ module.exports = {
 	gasPrice: process.env.GAS_PRICE || 'average',
 	ignorePending: !!process.env.IGNORE_PENDING,
 	maxGasPrice: process.env.MAX_GAS_PRICE,
-	agentName: 'issuer.selfkey.org',
+	agentName: process.env.AGENT_NAME || 'issuer.selfkey.org',
 	dbName: 'issuer-db.sqlite'
 };

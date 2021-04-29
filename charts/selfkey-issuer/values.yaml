@@ -3,6 +3,15 @@ replicaCount: 1
 image: asia.gcr.io/selfkey2/selfkey-issuer-service
 imagePullPolicy: IfNotPresent
 
+kycc:
+	endpoint: https://dev.instance.kyc-chain.com
+	apiKey: test
+	template:
+
+selfkeyAgent:
+	agentName: stage-issuer.gc.selfkey.org
+	infuraID: 428cc2310dc042339286e183c6c96aa1
+
 service:
     type: NodePort
     port: 3000

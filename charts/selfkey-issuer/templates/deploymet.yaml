@@ -34,3 +34,14 @@ spec:
             - name: http
               containerPort: 3000
               protocol: TCP
+        env:
+        - name: INFURA_PROJECT_ID
+          value: "{{ .Values.selfkeyAgent.infuraID }}"
+        - name: KYCC_API_URL
+          value: "{{ .Values.kycc.endpoint }}"
+        - name: KYCC_API_KEY
+          value: "{{ .Values.kycc.apiKey }}"
+        - name: KYCC_API_TEMPLATE
+          value: "{{ .Values.kycc.template }}"
+        - name: AGENT_NAME
+          value: "{{ .Values.kycc.agentName }}"
